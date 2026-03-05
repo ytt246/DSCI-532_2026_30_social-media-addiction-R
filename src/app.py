@@ -89,118 +89,171 @@ app_ui = ui.page_fluid(
 
     ui.panel_title("Social Media Addiction Dashboard"),
 
-    ui.layout_sidebar(
+    ui.navset_tab(
+        ui.nav_panel("Dashboard",
+            ui.layout_sidebar(
 
-        # ── SIDEBAR: filters go here ──────────────────────────────────
-        ui.sidebar(
+                # ── SIDEBAR: filters go here ──────────────────────────────────
+                ui.sidebar(
 
-            ui.h6("Filters"),
+                    ui.h6("Filters"),
 
-            # Filter 1: Gender (radio buttons)
-            ui.input_radio_buttons(
-                id="f_gender",
-                label="Gender",
-                choices={"All": "All", "Male": "Male", "Female": "Female"},
-                selected="All",
-                inline=True,
-            ),
+                    # Filter 1: Gender (radio buttons)
+                    ui.input_radio_buttons(
+                        id="f_gender",
+                        label="Gender",
+                        choices={"All": "All", "Male": "Male", "Female": "Female"},
+                        selected="All",
+                        inline=True,
+                    ),
 
-            # Filter 2: Age range (slider with two handles)
-            ui.input_slider(
-                id="f_age",
-                label="Age range",
-                min=AGE_MIN,
-                max=AGE_MAX,
-                value=[AGE_MIN, AGE_MAX],
-            ),
+                    # Filter 2: Age range (slider with two handles)
+                    ui.input_slider(
+                        id="f_age",
+                        label="Age range",
+                        min=AGE_MIN,
+                        max=AGE_MAX,
+                        value=[AGE_MIN, AGE_MAX],
+                    ),
 
-            # Filter 3: Academic level (single dropdown)
-            ui.input_select(
-                id="f_level",
-                label="Academic level",
-                choices={"All": "All", "Undergraduate": "Undergraduate", "Graduate": "Graduate"},
-                selected="All",
-            ),
+                    # Filter 3: Academic level (single dropdown)
+                    ui.input_select(
+                        id="f_level",
+                        label="Academic level",
+                        choices={"All": "All", "Undergraduate": "Undergraduate", "Graduate": "Graduate"},
+                        selected="All",
+                    ),
 
-            # Filter 4: Country (multi-select)
-            ui.input_selectize(
-                id="f_country",
-                label="Country",
-                choices=sorted(df["Country"].unique().tolist()),
-                multiple=True,
-            ),
+                    # Filter 4: Country (multi-select)
+                    ui.input_selectize(
+                        id="f_country",
+                        label="Country",
+                        choices=sorted(df["Country"].unique().tolist()),
+                        multiple=True,
+                    ),
 
-            # Filter 5: Platform (multi-select)
-            ui.input_selectize(
-                id="f_platform",
-                label="Platform",
-                choices=sorted(df["Most_Used_Platform"].unique().tolist()),
-                multiple=True,
-            ),
-
-
-            open="desktop",
-            bg = "#EEF1F6",
-            fg = "#0F1F3D",
-        ),
-
-        # ── MAIN AREA ─────────────────────────────────────────────────
-
-        # Row 1: Summary stat tiles
-        ui.layout_columns(
-            ui.value_box("Total Students", ui.output_text("tile_students")),
-            ui.value_box("Avg Daily Usage", ui.output_text("tile_usage")),
-            ui.value_box("Avg Sleep Hours", ui.output_text("tile_sleep")),
-            ui.value_box("Avg Addiction Score", ui.output_text("tile_addiction")),
-            fill=False,
-        ),
+                    # Filter 5: Platform (multi-select)
+                    ui.input_selectize(
+                        id="f_platform",
+                        label="Platform",
+                        choices=sorted(df["Most_Used_Platform"].unique().tolist()),
+                        multiple=True,
+                    ),
 
 
-        # Row 2: Four chart placeholders in a 2x2 grid
-        # TODO: Replace each ui.p with the matching output_widget(...)
-        # and implement the corresponding render function in the server
-        ui.layout_columns(
-
-            ui.card(
-                ui.card_header("Affects Academic Performance"),
-                output_widget("plot_AAP"),
-                full_screen=True,
-            ),
-
-            ui.card(
-                ui.card_header("Academic Level"),
-                output_widget("donut_academic_level"),
-                full_screen=True,
+                    open="desktop",
+                    bg = "#EEF1F6",
+                    fg = "#0F1F3D",
                 ),
 
-            ui.card(
-                ui.card_header("Academic Level Distribution"),
-                output_widget("plot_academiclvldist"),
-                full_screen=True,
-            ),
-
-            ui.card(
-                ui.card_header("Platform Distribution"),
-                output_widget("donut_platform"),
-                full_screen=True,
+                # ── MAIN AREA ─────────────────────────────────────────────────
+                # Row 1: Summary stat tiles
+                ui.layout_columns(
+                    ui.value_box("Total Students", ui.output_text("tile_students")),
+                    ui.value_box("Avg Daily Usage", ui.output_text("tile_usage")),
+                    ui.value_box("Avg Sleep Hours", ui.output_text("tile_sleep")),
+                    ui.value_box("Avg Addiction Score", ui.output_text("tile_addiction")),
+                    fill=False,
                 ),
 
-            col_widths=[3, 3, 3, 3],
-        ),
+                # Row 2: Four chart placeholders in a 2x2 grid
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Affects Academic Performance"),
+                        output_widget("plot_AAP"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level"),
+                        output_widget("donut_academic_level"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level Distribution"),
+                        output_widget("plot_academiclvldist"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Platform Distribution"),
+                        output_widget("donut_platform"),
+                        full_screen=True,
+                    ),
+                    col_widths=[3, 3, 3, 3],
+                ),
 
-        # Row 3: map and more
-        ui.layout_columns(
-            ui.card(
-                ui.card_header("Addiction vs Mental Health & Sleep"),
-                output_widget("scatter_chart"),
-                full_screen=True,
-            ),
-            ui.card(
-                ui.card_header("Avg Addiction Score by Country"),
-                output_widget("map_chart"),
-                full_screen=True,
-            ),
+                # Row 3: map and more
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Addiction vs Mental Health & Sleep"),
+                        output_widget("scatter_chart"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Avg Addiction Score by Country"),
+                        output_widget("map_chart"),
+                        full_screen=True,
+                    ),
+                ),
+            )
         ),
+        ui.nav_panel("Chat bot",
+            ui.layout_sidebar(
+
+                # ── SIDEBAR: filters go here ──────────────────────────────────
+                ui.sidebar(
+
+                    ui.h6("Chat box here"),
+
+                    open="desktop",
+                    bg = "#EEF1F6",
+                    fg = "#0F1F3D",
+                ),
+
+                # ── MAIN AREA ─────────────────────────────────────────────────
+                # Row 1: Summary stat tiles
+                ui.output_data_frame("chat_df"),
+                ui.download_button("download_csv", "Download CSV"),
+
+                # Row 2: Four chart placeholders in a 2x2 grid
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Affects Academic Performance"),
+                        output_widget("plot_AAP"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level"),
+                        output_widget("donut_academic_level"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level Distribution"),
+                        output_widget("plot_academiclvldist"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Platform Distribution"),
+                        output_widget("donut_platform"),
+                        full_screen=True,
+                    ),
+                    col_widths=[3, 3, 3, 3],
+                ),
+
+                # Row 3: map and more
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Addiction vs Mental Health & Sleep"),
+                        output_widget("scatter_chart"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Avg Addiction Score by Country"),
+                        output_widget("map_chart"),
+                        full_screen=True,
+                    ),
+                ),
+            )
+        )
     ),
 )
 
@@ -212,6 +265,7 @@ def server(input, output, session):
         range=['#0F1F3D', '#2D6BE4', '#26f7fd'],
         type='linear'
     )
+
     
 
     # ── Filtered data ─────────────────────────────────────────────────
@@ -239,6 +293,7 @@ def server(input, output, session):
             data = data[data["Most_Used_Platform"].isin(input.f_platform())]
 
         return data
+
 
     # ── Stat tiles ────────────────────────────────────────────────────
     # TODO: Uncomment and wire up once value_box uses output_text(...)
@@ -495,6 +550,14 @@ def server(input, output, session):
         
         return donut
         
+
+    @render.data_frame
+    def chat_df():
+        return render.DataGrid(df)
+
+    @render.download(filename="social_media_data.csv")
+    def download_csv():
+        yield df.to_csv(index=False)
         
     
         

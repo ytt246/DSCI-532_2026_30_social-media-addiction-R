@@ -15,7 +15,8 @@ from shiny import App, render, ui, reactive
 from shinywidgets import render_plotly, render_altair, output_widget
 from pathlib import Path
 import altair as alt
-
+from querychat import QueryChat
+from dotenv import load_dotenv
 
 # ── DATA ─────────────────────────────────────────────────────────────
 
@@ -44,6 +45,12 @@ AGE_MAX = int(df["Age"].max())
 #})
 MIN_SCORE = df["Addicted_Score"].min()
 MAX_SCORE = df["Addicted_Score"].max()
+
+# ── LLM setup ────────────────────────────────────────────────────────
+load_dotenv()
+greeting = 'Hello! Welcome to your Social Media Addiction data dashboard. I\'m here to help you filter, sort, and analyze the data.'
+qc = QueryChat(df, "df", greeting=greeting, client="github/gpt-4o-mini")
+
 
 
 # ── UI ───────────────────────────────────────────────────────────────
@@ -78,6 +85,22 @@ body {
 
 .shiny-text-output {
     color: #0F1F3D !important;
+}
+
+
+
+/* Fix Chat bot panel to have independent scrolling */
+.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout {
+    height: calc(100vh - 130px) !important;
+}
+.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > .main {
+    overflow-y: auto !important;
+    height: max-content !important;
+}
+.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > aside.sidebar {
+    position: relative !important; /* Override sticky */
+    height: 100% !important; /* Override max-content */
+    overflow-y: auto !important; /* Natively scroll sidebar */
 }
 """
 
@@ -200,19 +223,29 @@ app_ui = ui.page_fluid(
             ui.layout_sidebar(
 
                 # ── SIDEBAR: filters go here ──────────────────────────────────
-                ui.sidebar(
+                #ui.sidebar(
 
-                    ui.h6("Chat box here"),
+                #    ui.h6("Chat box here"),
 
+                #    open="desktop",
+                #    bg = "#EEF1F6",
+                #    fg = "#0F1F3D",
+                #),
+                qc.sidebar(
                     open="desktop",
                     bg = "#EEF1F6",
                     fg = "#0F1F3D",
                 ),
 
+                ui.input_action_button("reset", "Reset Filters"),
+
                 # ── MAIN AREA ─────────────────────────────────────────────────
                 # Row 1: Summary stat tiles
-                ui.output_data_frame("chat_df"),
-                ui.download_button("download_csv", "Download CSV"),
+                ui.card(
+                    ui.card_header("Filtered Data"),
+                    ui.output_data_frame("chat_df"),
+                    ui.download_button("download_csv", "Download CSV")
+                ),
 
                 # Row 2: Four chart placeholders in a 2x2 grid
                 ui.layout_columns(
@@ -221,21 +254,13 @@ app_ui = ui.page_fluid(
                         output_widget("plot_AAP"),
                         full_screen=True,
                     ),
-                    ui.card(
-                        ui.card_header("Academic Level"),
-                        output_widget("donut_academic_level"),
-                        full_screen=True,
-                    ),
+                   
                     ui.card(
                         ui.card_header("Academic Level Distribution"),
                         output_widget("plot_academiclvldist"),
                         full_screen=True,
                     ),
-                    ui.card(
-                        ui.card_header("Platform Distribution"),
-                        output_widget("donut_platform"),
-                        full_screen=True,
-                    ),
+                    
                     col_widths=[3, 3, 3, 3],
                 ),
 
@@ -260,6 +285,8 @@ app_ui = ui.page_fluid(
 # ── SERVER ───────────────────────────────────────────────────────────
 
 def server(input, output, session):
+
+    qc_data = qc.server()
 
     custom_ui_scale = alt.Scale(
         range=['#0F1F3D', '#2D6BE4', '#26f7fd'],
@@ -553,14 +580,20 @@ def server(input, output, session):
 
     @render.data_frame
     def chat_df():
-        return render.DataGrid(df)
+        return qc_data.df()
 
     @render.download(filename="social_media_data.csv")
     def download_csv():
-        yield df.to_csv(index=False)
+        yield qc_data.df().to_csv(index=False)
+
+    @reactive.effect
+    @reactive.event(input.reset)
+    def _():
+        qc_data.sql.set("")
+        qc_data.title.set(None)
         
     
-        
+
 
 # ── APP ───────────────────────────────────────────────────────────────
 

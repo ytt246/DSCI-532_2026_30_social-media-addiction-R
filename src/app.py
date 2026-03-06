@@ -87,20 +87,20 @@ body {
     color: #0F1F3D !important;
 }
 
-
-
-/* Fix Chat bot panel to have independent scrolling */
-.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout {
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout{
+    border: none !important;
+}
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout {
     height: calc(100vh - 130px) !important;
 }
-.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > .main {
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > .main {
     overflow-y: auto !important;
     height: max-content !important;
 }
 .tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > aside.sidebar {
-    position: relative !important; /* Override sticky */
-    height: 100% !important; /* Override max-content */
-    overflow-y: auto !important; /* Natively scroll sidebar */
+    position: relative !important; 
+    height: 100% !important; 
+    overflow-y: auto !important; 
 }
 """
 
@@ -219,7 +219,7 @@ app_ui = ui.page_fluid(
                 ),
             )
         ),
-        ui.nav_panel("Chat bot",
+        ui.nav_panel("Chatbot",
             ui.layout_sidebar(
 
                 # ── SIDEBAR: filters go here ──────────────────────────────────
@@ -251,32 +251,24 @@ app_ui = ui.page_fluid(
                 ui.layout_columns(
                     ui.card(
                         ui.card_header("Affects Academic Performance"),
-                        output_widget("plot_AAP"),
+                        output_widget("plot_AAP_bot"),
                         full_screen=True,
                     ),
                    
                     ui.card(
                         ui.card_header("Academic Level Distribution"),
-                        output_widget("plot_academiclvldist"),
+                        output_widget("plot_academiclvldist_bot"),
                         full_screen=True,
                     ),
                     
-                    col_widths=[3, 3, 3, 3],
+                    #col_widths=[3, 3, 6],
                 ),
-
-                # Row 3: map and more
-                ui.layout_columns(
-                    ui.card(
+                ui.card(
                         ui.card_header("Addiction vs Mental Health & Sleep"),
-                        output_widget("scatter_chart"),
+                        output_widget("scatter_chart_bot"),
                         full_screen=True,
                     ),
-                    ui.card(
-                        ui.card_header("Avg Addiction Score by Country"),
-                        output_widget("map_chart"),
-                        full_screen=True,
-                    ),
-                ),
+
             )
         )
     ),
@@ -591,6 +583,85 @@ def server(input, output, session):
     def _():
         qc_data.sql.set("")
         qc_data.title.set(None)
+
+    @render_altair
+    def plot_AAP_bot():
+        df1 = qc_data.df()
+        #calculate the percentage
+        percent = (df1.groupby("Affects_Academic_Performance").size().reset_index(name="Count"))
+        percent["Percentage"] = (percent["Count"] / percent["Count"].sum() * 100).round(1)
+        percent["label"] = percent["Percentage"].astype(str) + "%"
+
+
+        chart = alt.Chart(percent).mark_bar().encode(
+            alt.Y("Affects_Academic_Performance:N", title = "Impact on Academic Performance"),
+            alt.X("Percentage:Q", title = "Percentage of Students"),
+            alt.Color("Affects_Academic_Performance:N", scale=alt.Scale(domain=["Yes", "No"],
+            range=["#c0392b", "#1e3a6e"]), legend = None),
+
+            tooltip = [alt.Tooltip("Affects_Academic_Performance:N", title = "Affects Academic Performance?"),
+            alt.Tooltip("Count:Q", title = "Number of Students"),
+            alt.Tooltip("Percentage:Q", title = "Percentage of Students being Affected")]
+        )
+
+        return chart + chart.mark_text(align = "left").encode(text = alt.Text("label:N"), color=alt.value('black'))
+
+    # ── Chart 3: Academic Level Distribution ───────────────────────────────────
+    @render_altair
+    def plot_academiclvldist_bot():
+        df = qc_data.df()
+
+        group_gender_df = df.groupby(["Academic_Level", "Gender"]).size().reset_index(name="Count")
+
+        chart = alt.Chart(group_gender_df).mark_bar().encode(
+            alt.X("Academic_Level:N",
+                title = "Academic Level",
+                sort = ["Undergraduate", "Graduate"],
+                axis=alt.Axis(labelAngle=0)),
+
+            alt.Y("Count:Q",
+                title = "Number of Students"),
+
+            alt.Color("Gender:N",
+                scale = alt.Scale(
+                    domain = ["Male", "Female"], range=["#1e3a6e", "#5ba4cf"]),
+                    legend=alt.Legend(title="Gender"),
+                    ),
+
+            order = alt.Order("Gender:N", sort="ascending"),
+            tooltip = [alt.Tooltip("Academic_Level:N", title="Academic Level"),
+            alt.Tooltip("Gender:N", title="Gender"),
+            alt.Tooltip("Count:Q", title="Number of Students")
+            ])
+
+        return chart
+
+    @render_altair
+    def scatter_chart_bot():
+        d = qc_data.df()
+        fig = alt.Chart(d).transform_calculate(
+            jitter_addiction="datum.Addicted_Score + 0.4 * (random() + random() - 1)",
+            jitter_mental="datum.Mental_Health_Score + 0.4 * (random() + random() - 1)"
+        ).mark_circle(size=50, opacity=0.7).encode(
+            x=alt.X(
+                "jitter_addiction:Q", 
+                title="Addiction Score", 
+                scale=alt.Scale(zero=False)
+            ),
+            y=alt.Y(
+                "jitter_mental:Q", 
+                title="Mental Health Score", 
+                scale=alt.Scale(zero=False)
+            ),
+            color=alt.Color(
+                "Sleep_Hours_Per_Night", 
+                title="Sleep Time (hrs)", 
+                scale=custom_ui_scale#alt.Scale(scheme="viridis")
+            ),
+            tooltip=["Addicted_Score", "Mental_Health_Score", "Sleep_Hours_Per_Night"]
+        ).interactive()
+        
+        return fig
         
     
 

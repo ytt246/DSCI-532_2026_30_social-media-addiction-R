@@ -16,6 +16,7 @@ from shinywidgets import render_plotly, render_altair, output_widget
 from pathlib import Path
 from querychat import QueryChat
 from dotenv import load_dotenv
+import plotly.graph_objects as go
 
 # ── DATA ─────────────────────────────────────────────────────────────
 
@@ -423,6 +424,9 @@ def server(input, output, session):
 
         df_selected['iso_alpha'] = df_selected['Country'].apply(get_iso3)
         df_selected = df_selected.dropna(subset=['iso_alpha'])
+        all_iso = [c.alpha_3 for c in pycountry.countries]
+        no_data_iso = [iso for iso in all_iso if iso not in df_selected['iso_alpha'].values]
+
         fig = px.choropleth(
             df_selected,
             locations='iso_alpha',
@@ -450,13 +454,25 @@ def server(input, output, session):
                 'Addicted_Score': ":.1f"
             },
         )
+
+        fig.add_trace(
+            go.Choropleth(
+                locations=no_data_iso,
+                z=[0] * len(no_data_iso),
+                locationmode='ISO-3',
+                colorscale=[[0, '#d3d3d3'], [1, '#d3d3d3']],
+                showscale=False,
+                marker=dict(line=dict(color='black', width=0.5)),
+                hovertemplate="<b>%{location}</b><br>No data available<extra></extra>",
+            )
+        )
+        fig.data = fig.data[::-1]
+
         fig.update_coloraxes(reversescale=True)
-
-
         #fig.add_trace(fig_unselected.data[0])
         fig.update_geos(fitbounds="locations", showframe=False)
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        fig.update_traces(marker=dict(line=dict(color="black", width=1.5)))
+        
         return fig
 
     # ── Chart 1: Does social media affect academic performance? ─────────────────────────

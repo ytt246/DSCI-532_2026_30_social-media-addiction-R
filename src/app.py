@@ -97,7 +97,7 @@ body {
     overflow-y: auto !important;
     height: max-content !important;
 }
-.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > aside.sidebar {
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > aside.sidebar {
     position: relative !important; 
     height: 100% !important; 
     overflow-y: auto !important; 

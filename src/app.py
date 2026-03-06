@@ -15,7 +15,8 @@ from shiny import App, render, ui, reactive
 from shinywidgets import render_plotly, render_altair, output_widget
 from pathlib import Path
 import altair as alt
-
+from querychat import QueryChat
+from dotenv import load_dotenv
 
 # ── DATA ─────────────────────────────────────────────────────────────
 
@@ -44,6 +45,12 @@ AGE_MAX = int(df["Age"].max())
 #})
 MIN_SCORE = df["Addicted_Score"].min()
 MAX_SCORE = df["Addicted_Score"].max()
+
+# ── LLM setup ────────────────────────────────────────────────────────
+load_dotenv()
+greeting = 'Hello! Welcome to your Social Media Addiction data dashboard. I\'m here to help you filter, sort, and analyze the data.'
+qc = QueryChat(df, "df", greeting=greeting, client="github/gpt-4o-mini")
+
 
 
 # ── UI ───────────────────────────────────────────────────────────────
@@ -79,6 +86,32 @@ body {
 .shiny-text-output {
     color: #0F1F3D !important;
 }
+
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout{
+    border: none !important;
+}
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout {
+    height: calc(100vh - 130px) !important;
+}
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > .main {
+    overflow-y: auto !important;
+    height: max-content !important;
+}
+.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > aside.sidebar {
+    position: relative !important; 
+    height: 100% !important; 
+    overflow-y: auto !important; 
+}
+#reset:hover {
+    background-color: #c0392b !important;
+    border-color: #c0392b !important;
+    color: white !important;
+}
+#download_csv:hover {
+    background-color: #1e3a6e !important;
+    border-color: #1e3a6e !important;
+    color: white !important;
+}
 """
 
 app_ui = ui.page_fluid(
@@ -89,118 +122,168 @@ app_ui = ui.page_fluid(
 
     ui.panel_title("Social Media Addiction Dashboard"),
 
-    ui.layout_sidebar(
+    ui.navset_tab(
+        ui.nav_panel("Dashboard",
+            ui.layout_sidebar(
 
-        # ── SIDEBAR: filters go here ──────────────────────────────────
-        ui.sidebar(
+                # ── SIDEBAR: filters go here ──────────────────────────────────
+                ui.sidebar(
 
-            ui.h6("Filters"),
+                    ui.h6("Filters"),
 
-            # Filter 1: Gender (radio buttons)
-            ui.input_radio_buttons(
-                id="f_gender",
-                label="Gender",
-                choices={"All": "All", "Male": "Male", "Female": "Female"},
-                selected="All",
-                inline=True,
-            ),
+                    # Filter 1: Gender (radio buttons)
+                    ui.input_radio_buttons(
+                        id="f_gender",
+                        label="Gender",
+                        choices={"All": "All", "Male": "Male", "Female": "Female"},
+                        selected="All",
+                        inline=True,
+                    ),
 
-            # Filter 2: Age range (slider with two handles)
-            ui.input_slider(
-                id="f_age",
-                label="Age range",
-                min=AGE_MIN,
-                max=AGE_MAX,
-                value=[AGE_MIN, AGE_MAX],
-            ),
+                    # Filter 2: Age range (slider with two handles)
+                    ui.input_slider(
+                        id="f_age",
+                        label="Age range",
+                        min=AGE_MIN,
+                        max=AGE_MAX,
+                        value=[AGE_MIN, AGE_MAX],
+                    ),
 
-            # Filter 3: Academic level (single dropdown)
-            ui.input_select(
-                id="f_level",
-                label="Academic level",
-                choices={"All": "All", "Undergraduate": "Undergraduate", "Graduate": "Graduate"},
-                selected="All",
-            ),
+                    # Filter 3: Academic level (single dropdown)
+                    ui.input_select(
+                        id="f_level",
+                        label="Academic level",
+                        choices={"All": "All", "Undergraduate": "Undergraduate", "Graduate": "Graduate"},
+                        selected="All",
+                    ),
 
-            # Filter 4: Country (multi-select)
-            ui.input_selectize(
-                id="f_country",
-                label="Country",
-                choices=sorted(df["Country"].unique().tolist()),
-                multiple=True,
-            ),
+                    # Filter 4: Country (multi-select)
+                    ui.input_selectize(
+                        id="f_country",
+                        label="Country",
+                        choices=sorted(df["Country"].unique().tolist()),
+                        multiple=True,
+                    ),
 
-            # Filter 5: Platform (multi-select)
-            ui.input_selectize(
-                id="f_platform",
-                label="Platform",
-                choices=sorted(df["Most_Used_Platform"].unique().tolist()),
-                multiple=True,
-            ),
-
-
-            open="desktop",
-            bg = "#EEF1F6",
-            fg = "#0F1F3D",
-        ),
-
-        # ── MAIN AREA ─────────────────────────────────────────────────
-
-        # Row 1: Summary stat tiles
-        ui.layout_columns(
-            ui.value_box("Total Students", ui.output_text("tile_students")),
-            ui.value_box("Avg Daily Usage", ui.output_text("tile_usage")),
-            ui.value_box("Avg Sleep Hours", ui.output_text("tile_sleep")),
-            ui.value_box("Avg Addiction Score", ui.output_text("tile_addiction")),
-            fill=False,
-        ),
+                    # Filter 5: Platform (multi-select)
+                    ui.input_selectize(
+                        id="f_platform",
+                        label="Platform",
+                        choices=sorted(df["Most_Used_Platform"].unique().tolist()),
+                        multiple=True,
+                    ),
 
 
-        # Row 2: Four chart placeholders in a 2x2 grid
-        # TODO: Replace each ui.p with the matching output_widget(...)
-        # and implement the corresponding render function in the server
-        ui.layout_columns(
-
-            ui.card(
-                ui.card_header("Affects Academic Performance"),
-                output_widget("plot_AAP"),
-                full_screen=True,
-            ),
-
-            ui.card(
-                ui.card_header("Academic Level"),
-                output_widget("donut_academic_level"),
-                full_screen=True,
+                    open="desktop",
+                    bg = "#EEF1F6",
+                    fg = "#0F1F3D",
                 ),
 
-            ui.card(
-                ui.card_header("Academic Level Distribution"),
-                output_widget("plot_academiclvldist"),
-                full_screen=True,
-            ),
-
-            ui.card(
-                ui.card_header("Platform Distribution"),
-                output_widget("donut_platform"),
-                full_screen=True,
+                # ── MAIN AREA ─────────────────────────────────────────────────
+                # Row 1: Summary stat tiles
+                ui.layout_columns(
+                    ui.value_box("Total Students", ui.output_text("tile_students")),
+                    ui.value_box("Avg Daily Usage", ui.output_text("tile_usage")),
+                    ui.value_box("Avg Sleep Hours", ui.output_text("tile_sleep")),
+                    ui.value_box("Avg Addiction Score", ui.output_text("tile_addiction")),
+                    fill=False,
                 ),
 
-            col_widths=[3, 3, 3, 3],
-        ),
+                # Row 2: Four chart placeholders in a 2x2 grid
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Affects Academic Performance"),
+                        output_widget("plot_AAP"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level"),
+                        output_widget("donut_academic_level"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Academic Level Distribution"),
+                        output_widget("plot_academiclvldist"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Platform Distribution"),
+                        output_widget("donut_platform"),
+                        full_screen=True,
+                    ),
+                    col_widths=[3, 3, 3, 3],
+                ),
 
-        # Row 3: map and more
-        ui.layout_columns(
-            ui.card(
-                ui.card_header("Addiction vs Mental Health & Sleep"),
-                output_widget("scatter_chart"),
-                full_screen=True,
-            ),
-            ui.card(
-                ui.card_header("Avg Addiction Score by Country"),
-                output_widget("map_chart"),
-                full_screen=True,
-            ),
+                # Row 3: map and more
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Addiction vs Mental Health & Sleep"),
+                        output_widget("scatter_chart"),
+                        full_screen=True,
+                    ),
+                    ui.card(
+                        ui.card_header("Avg Addiction Score by Country"),
+                        output_widget("map_chart"),
+                        full_screen=True,
+                    ),
+                ),
+            )
         ),
+        ui.nav_panel("Chatbot",
+            ui.layout_sidebar(
+
+                # ── SIDEBAR: filters go here ──────────────────────────────────
+                #ui.sidebar(
+
+                #    ui.h6("Chat box here"),
+
+                #    open="desktop",
+                #    bg = "#EEF1F6",
+                #    fg = "#0F1F3D",
+                #),
+                qc.sidebar(
+                    open="desktop",
+                    bg = "#EEF1F6",
+                    fg = "#0F1F3D",
+                ),
+                ui.layout_columns(
+                    ui.input_action_button("reset", "Reset Filters"),
+                    ui.download_button("download_csv", "Download CSV")
+                ),
+                
+
+                # ── MAIN AREA ─────────────────────────────────────────────────
+                # Row 1: Summary stat tiles
+                ui.card(
+                    ui.card_header("Filtered Data"),
+                    ui.output_data_frame("chat_df"),
+                    
+                ),
+
+                # Row 2: Four chart placeholders in a 2x2 grid
+                ui.layout_columns(
+                    ui.card(
+                        ui.card_header("Affects Academic Performance"),
+                        output_widget("plot_AAP_bot"),
+                        full_screen=True,
+                    ),
+                   
+                    ui.card(
+                        ui.card_header("Academic Level Distribution"),
+                        output_widget("plot_academiclvldist_bot"),
+                        full_screen=True,
+                    ),
+                    
+                    #col_widths=[3, 3, 6],
+                ),
+                ui.card(
+                        ui.card_header("Addiction vs Mental Health & Sleep"),
+                        output_widget("scatter_chart_bot"),
+                        full_screen=True,
+                    ),
+
+            )
+        )
     ),
 )
 
@@ -208,10 +291,13 @@ app_ui = ui.page_fluid(
 
 def server(input, output, session):
 
+    qc_data = qc.server()
+
     custom_ui_scale = alt.Scale(
         range=['#0F1F3D', '#2D6BE4', '#26f7fd'],
         type='linear'
     )
+
     
 
     # ── Filtered data ─────────────────────────────────────────────────
@@ -239,6 +325,7 @@ def server(input, output, session):
             data = data[data["Most_Used_Platform"].isin(input.f_platform())]
 
         return data
+
 
     # ── Stat tiles ────────────────────────────────────────────────────
     # TODO: Uncomment and wire up once value_box uses output_text(...)
@@ -495,9 +582,102 @@ def server(input, output, session):
         
         return donut
         
+
+    @render.data_frame
+    def chat_df():
+        return qc_data.df()
+
+    @render.download(filename="social_media_data.csv")
+    def download_csv():
+        yield qc_data.df().to_csv(index=False)
+
+    @reactive.effect
+    @reactive.event(input.reset)
+    def _():
+        qc_data.sql.set("")
+        qc_data.title.set(None)
+
+    @render_altair
+    def plot_AAP_bot():
+        df1 = qc_data.df()
+        #calculate the percentage
+        percent = (df1.groupby("Affects_Academic_Performance").size().reset_index(name="Count"))
+        percent["Percentage"] = (percent["Count"] / percent["Count"].sum() * 100).round(1)
+        percent["label"] = percent["Percentage"].astype(str) + "%"
+
+
+        chart = alt.Chart(percent).mark_bar().encode(
+            alt.Y("Affects_Academic_Performance:N", title = "Impact on Academic Performance"),
+            alt.X("Percentage:Q", title = "Percentage of Students"),
+            alt.Color("Affects_Academic_Performance:N", scale=alt.Scale(domain=["Yes", "No"],
+            range=["#c0392b", "#1e3a6e"]), legend = None),
+
+            tooltip = [alt.Tooltip("Affects_Academic_Performance:N", title = "Affects Academic Performance?"),
+            alt.Tooltip("Count:Q", title = "Number of Students"),
+            alt.Tooltip("Percentage:Q", title = "Percentage of Students being Affected")]
+        )
+
+        return chart + chart.mark_text(align = "left").encode(text = alt.Text("label:N"), color=alt.value('black'))
+
+    # ── Chart 3: Academic Level Distribution ───────────────────────────────────
+    @render_altair
+    def plot_academiclvldist_bot():
+        df = qc_data.df()
+
+        group_gender_df = df.groupby(["Academic_Level", "Gender"]).size().reset_index(name="Count")
+
+        chart = alt.Chart(group_gender_df).mark_bar().encode(
+            alt.X("Academic_Level:N",
+                title = "Academic Level",
+                sort = ["Undergraduate", "Graduate"],
+                axis=alt.Axis(labelAngle=0)),
+
+            alt.Y("Count:Q",
+                title = "Number of Students"),
+
+            alt.Color("Gender:N",
+                scale = alt.Scale(
+                    domain = ["Male", "Female"], range=["#1e3a6e", "#5ba4cf"]),
+                    legend=alt.Legend(title="Gender"),
+                    ),
+
+            order = alt.Order("Gender:N", sort="ascending"),
+            tooltip = [alt.Tooltip("Academic_Level:N", title="Academic Level"),
+            alt.Tooltip("Gender:N", title="Gender"),
+            alt.Tooltip("Count:Q", title="Number of Students")
+            ])
+
+        return chart
+
+    @render_altair
+    def scatter_chart_bot():
+        d = qc_data.df()
+        fig = alt.Chart(d).transform_calculate(
+            jitter_addiction="datum.Addicted_Score + 0.4 * (random() + random() - 1)",
+            jitter_mental="datum.Mental_Health_Score + 0.4 * (random() + random() - 1)"
+        ).mark_circle(size=50, opacity=0.7).encode(
+            x=alt.X(
+                "jitter_addiction:Q", 
+                title="Addiction Score", 
+                scale=alt.Scale(zero=False)
+            ),
+            y=alt.Y(
+                "jitter_mental:Q", 
+                title="Mental Health Score", 
+                scale=alt.Scale(zero=False)
+            ),
+            color=alt.Color(
+                "Sleep_Hours_Per_Night", 
+                title="Sleep Time (hrs)", 
+                scale=custom_ui_scale#alt.Scale(scheme="viridis")
+            ),
+            tooltip=["Addicted_Score", "Mental_Health_Score", "Sleep_Hours_Per_Night"]
+        ).interactive()
+        
+        return fig
         
     
-        
+
 
 # ── APP ───────────────────────────────────────────────────────────────
 

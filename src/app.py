@@ -87,19 +87,26 @@ body {
     color: #0F1F3D !important;
 }
 
-.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout{
-    border: none !important;
-}
+
 .tab-pane[data-value="Chatbot"] .bslib-sidebar-layout {
-    height: calc(100vh - 130px) !important;
+    height: calc(100vh - 100px) !important;
+    max-height: calc(100vh - 100px) !important;
+    overflow: hidden !important;
 }
 .tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > .main {
     overflow-y: auto !important;
-    height: max-content !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    padding: 1rem !important;
 }
-.tab-pane[data-value="Chat bot"] .bslib-sidebar-layout > aside.sidebar {
-    position: relative !important; 
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > .main > * {
+    flex-shrink: 0 !important;
+}
+.tab-pane[data-value="Chatbot"] .bslib-sidebar-layout > aside.sidebar {
     height: 100% !important; 
+    min-height: 0 !important;
     overflow-y: auto !important; 
 }
 #reset:hover {

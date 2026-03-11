@@ -23,8 +23,6 @@ shiny::runApp('src')
 
 You will be able to access the app at the link displayed in the terminal.
 
-### Live App
+### Live App (R)
 
-#### Stable (main)
-
-<https://019ca108-2c5a-f4a9-1093-cdd4a540d77d.share.connect.posit.cloud/>
+<https://019cdac5-4061-f14a-b3f0-b2ffcaceeaf4.share.connect.posit.cloud/>

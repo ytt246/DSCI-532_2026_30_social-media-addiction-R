@@ -4,7 +4,6 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 library(readr)
-library(countrycode)
 
 df <- read_csv("../data/raw/Students-Social-Media-Addiction.csv")
 
@@ -44,10 +43,7 @@ ui <- page_fluid(
   tags$head(
     tags$style(custom_css)
   ),
-
   titlePanel("Social Media Addiction Dashboard"),
-
-
   layout_sidebar(
     sidebar = sidebar(
       h6("Filters"),
@@ -64,12 +60,10 @@ ui <- page_fluid(
         choices = c("All", "Undergraduate", "Graduate"),
         selected = "All"
       ),
-
       open = "desktop",
       bg = "#EEF1F6",
       fg = "#0F1F3D"
     ),
-
     layout_columns(
       value_box(
         title = "Total Students",
@@ -89,7 +83,6 @@ ui <- page_fluid(
       ),
       fill = FALSE
     ),
-
     layout_columns(
       card(
         card_header("Addiction vs Mental Health & Sleep"),
@@ -102,7 +95,7 @@ ui <- page_fluid(
 
 
 server <- function(input, output, session) {
-  custom_ui_colors <- c('#0F1F3D', '#2D6BE4', '#26f7fd')
+  custom_ui_colors <- c("#0F1F3D", "#2D6BE4", "#26f7fd")
 
   filtered_df <- reactive({
     data <- df |>
@@ -126,37 +119,49 @@ server <- function(input, output, session) {
 
   output$tile_usage <- renderText({
     d <- filtered_df()
-    if (nrow(d) == 0) return("--")
+    if (nrow(d) == 0) {
+      return("--")
+    }
     paste0(round(mean(d$Avg_Daily_Usage_Hours, na.rm = TRUE), 1), "h")
   })
 
   output$tile_sleep <- renderText({
     d <- filtered_df()
-    if (nrow(d) == 0) return("--")
+    if (nrow(d) == 0) {
+      return("--")
+    }
     paste0(round(mean(d$Sleep_Hours_Per_Night, na.rm = TRUE), 1), "h")
   })
 
   output$tile_addiction <- renderText({
     d <- filtered_df()
-    if (nrow(d) == 0) return("--")
+    if (nrow(d) == 0) {
+      return("--")
+    }
     round(mean(d$Addicted_Score, na.rm = TRUE), 1)
   })
 
   output$scatter_chart <- renderPlotly({
     d <- filtered_df()
-    if (nrow(d) == 0) return(NULL)
-    
+    if (nrow(d) == 0) {
+      return(NULL)
+    }
+
     d <- d |>
       mutate(
         jitter_addiction = Addicted_Score + runif(n(), -0.4, 0.4),
         jitter_mental = Mental_Health_Score + runif(n(), -0.4, 0.4)
       )
 
-    p <- ggplot(d, aes(x = jitter_addiction, y = jitter_mental, 
-                       color = Sleep_Hours_Per_Night,
-                       text = paste("Addiction Score:", Addicted_Score,
-                                    "<br>Mental Health Score:", Mental_Health_Score,
-                                    "<br>Sleep Time (hrs):", Sleep_Hours_Per_Night))) +
+    p <- ggplot(d, aes(
+      x = jitter_addiction, y = jitter_mental,
+      color = Sleep_Hours_Per_Night,
+      text = paste(
+        "Addiction Score:", Addicted_Score,
+        "<br>Mental Health Score:", Mental_Health_Score,
+        "<br>Sleep Time (hrs):", Sleep_Hours_Per_Night
+      )
+    )) +
       geom_point(alpha = 0.7, size = 2) +
       scale_color_gradientn(colors = custom_ui_colors, name = "Sleep Time (hrs)") +
       labs(x = "Addiction Score", y = "Mental Health Score")
